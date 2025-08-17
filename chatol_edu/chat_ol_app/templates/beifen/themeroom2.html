@@ -1,0 +1,1577 @@
+//昨天晚上
+
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ theme.title }} - 主题房间</title>
+    <style>
+        body {
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* 整体布局 */
+        .main-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* 用户信息栏（左） */
+        .sidebar-left {
+            width: 250px;
+            background: rgba(255,255,255,0.95);
+            box-shadow: 2px 0 10px rgba(31, 38, 135, 0.1);
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            z-index: 100;
+            left: 0;
+            top: 0;
+        }
+        
+        .sidebar.collapsed {
+            transform: translateX(-250px);
+        }
+        
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            right: -40px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 2px 0 5px rgba(31, 38, 135, 0.1);
+            z-index: 101;
+        }
+        
+        .user-info {
+            padding: 20px 0;
+            border-bottom: 1px solid #e1e1e1;
+            margin-bottom: 20px;
+        }
+        
+        .user-info h3 {
+            color: #2d8cf0;
+            margin-bottom: 15px;
+        }
+        
+        .user-info p {
+            color: #555;
+            margin: 8px 0;
+        }
+        
+        /* 统计数据样式 */
+        .statistics {
+            margin-top: 20px;
+        }
+        
+        .statistics h3 {
+            color: #2d8cf0;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .statistics p {
+            color: #555;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        
+        .statistics ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        /* 主内容区student */
+        .content-area-student {
+            flex: 1;
+            /* margin-left: 290px; 250px宽度 + 20px左右内边距 + 额外空间 */
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+            width: calc(100% - 290px); /* 确保内容区不会超出屏幕 */
+            box-sizing: border-box;
+        }
+        
+        .content-area.expanded {
+            margin-left: 40px; /* 只保留侧边栏切换按钮的宽度 */
+            width: calc(100% - 40px);
+        }
+
+        /* 主内容区teacher */
+        .content-area-teacher {
+            flex: 1;
+            margin-left: 290px; /* 250px宽度 + 20px左右内边距 + 额外空间 */
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+            width: calc(100% - 290px); /* 确保内容区不会超出屏幕 */
+            box-sizing: border-box;
+        }
+        
+        .content-area.expanded {
+            margin-left: 40px; /* 只保留侧边栏切换按钮的宽度 */
+            width: calc(100% - 40px);
+        }
+        
+        /* 主题信息区 */
+        .theme-header {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 20px 30px;
+            margin-bottom: 30px;
+        }
+        
+        .theme-header h1 {
+            color: #2d8cf0;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .theme-header p {
+            color: #555;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        
+        /* 新建帖子区域 */
+        .create-post-area {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 20px 30px;
+            margin-bottom: 30px;
+        }
+        
+        .create-post-area h2 {
+            color: #2d8cf0;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .create-post-form {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .create-post-form input,
+        .create-post-form textarea {
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #c2e9fb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .create-post-form textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-upload {
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-upload label {
+            margin-right: 10px;
+            color: #555;
+        }
+        
+        /* 帖子瀑布流区域 */
+        .posts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+        
+        .post-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.1);
+            padding: 15px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px 0 rgba(31, 38, 135, 0.15);
+        }
+        
+        .post-card h3 {
+            color: #2d8cf0;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .post-card p {
+            max-height: 150px;
+            overflow-y: auto;
+            word-break: break-word;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        
+        .post-card .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .post-card .post-image {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        /* 帖子操作按钮 */
+        .post-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        
+        .more-btn {
+            background: rgba(45, 140, 240, 0.1);
+            color: #2d8cf0;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .more-btn:hover {
+            background: rgba(45, 140, 240, 0.2);
+        }
+        
+        .more-menu {
+            position: absolute;
+            top: 35px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 5px 0;
+            display: none;
+            z-index: 10;
+            min-width: 120px;
+        }
+        
+        .more-menu.active {
+            display: block;
+        }
+        
+        .more-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .more-menu button:hover {
+            background: #f5f5f5;
+            color: #2d8cf0;
+        }
+        
+        /* 点赞和评论区域 */
+        .post-interactions {
+            display: flex;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .post-interaction-btn {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            margin-right: 20px;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+        
+        .post-interaction-btn:hover {
+            color: #2d8cf0;
+        }
+        
+        .post-interaction-btn.active {
+            color: #2d8cf0;
+        }
+        
+        .post-interaction-btn i {
+            margin-right: 5px;
+            font-size: 1.1rem;
+        }
+        
+        /* 评论区域 */
+        .comments-section {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+            display: none;
+        }
+        
+        .comments-section.active {
+            display: block;
+        }
+        
+        .comment {
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        
+        .comment:last-child {
+            border-bottom: none;
+        }
+        
+        .comment-author {
+            font-weight: bold;
+            color: #2d8cf0;
+            margin-right: 8px;
+        }
+        
+        .comment-content {
+            color: #555;
+        }
+        
+        .comment-form {
+            display: flex;
+            margin-top: 10px;
+        }
+        
+        .comment-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #c2e9fb;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .comment-submit {
+            background: #2d8cf0;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0 15px;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+        
+        /* 中央展示的帖子样式 */
+        .post-card.highlighted {
+            grid-column: span 2;
+            grid-row: span 2;
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(45, 140, 240, 0.3);
+            z-index: 5;
+            background: rgba(255, 255, 255, 0.98);
+            border: 2px solid #2d8cf0;
+        }
+        
+        /* 学生名单样式 */
+        .student-list {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .student-list.active {
+            display: block;
+        }
+        
+        .student-list h4 {
+            color: #2d8cf0;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .student-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .student-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .student-list li:last-child {
+            border-bottom: none;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, #2d8cf0 0%, #57c1eb 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 2px 8px #e1e1e1;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(90deg, #1a6fb3 0%, #57c1eb 100%);
+            box-shadow: 0 4px 16px #b3d8f7;
+        }
+        
+        /* 返回按钮 */
+        .back-btn {
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            color: #2d8cf0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+        
+        /* 添加图片放大功能的样式 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+        }
+
+        .image-modal.active {
+            display: flex;
+        }
+
+
+        /* 编辑帖子区域样式 */
+        .edit-post-area {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 20px 30px;
+            margin-bottom: 30px;
+        }
+        
+        .edit-post-area h2 {
+            color: #2d8cf0;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .edit-post-form {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .edit-post-form input,
+        .edit-post-form textarea {
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #c2e9fb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .edit-post-form textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .edit-form-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .edit-file-upload {
+            display: flex;
+            align-items: center;
+        }
+        
+        .edit-file-upload label {
+            margin-right: 10px;
+            color: #555;
+        }
+
+        .post-title {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            max-width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 左侧统计信息栏 -->
+        {% if user_role == "teacher" %}
+        <div class="sidebar-left" id="sidebar">
+            <div class="sidebar-toggle" id="sidebar-toggle">
+                <i class="fas fa-chevron-left"></i>
+            </div>
+            
+            <div class="user-info">
+                <h3>用户信息</h3>
+                <p><strong>用户名：</strong> {{ user_name }}</p>
+                <p><strong>身份：</strong> {{ user_role }}</p>
+                <p><strong>ID：</strong> {{ user_custom_id }}</p>
+            </div>
+            
+            <div class="statistics">
+                <h3>统计数据</h3>
+                <p><strong>全班人数：</strong> {{ total_students }}</p>
+                <p><strong>总发帖数：</strong> {{ total_posts }}</p>
+                <p><strong>发帖人数：</strong> {{ total_posters }}</p>
+                <p><strong>发帖最多用户（前3名）：</strong></p>
+                <ul>
+                    {% for user, count in top_posters %}
+                        <li>{{ user }}（{{ count }} 帖）</li>
+                    {% endfor %}
+                </ul>
+                <p><strong>评论最多帖子：</strong> {{ most_commented_post.title }}（{{ most_commented_post.comments.count }} 评论）</p>
+                <p><strong>点赞最多帖子：</strong> {{ most_liked_post.title }}（{{ most_liked_post.likes }} 点赞）</p>
+            </div>
+            
+            <a href="{% url 'home' user_custom_id user_name user_role %}" class="back-btn">
+                <span>← 返回首页</span>
+            </a>
+        </div>
+
+        
+        {% endif %}
+        
+        <!-- 主内容区 -->
+        <div class="{% if user_role == 'teacher' %}content-area-teacher{% else %}content-area-student{% endif %}" id="content-area">
+            <!-- 主题信息区 -->
+            <div class="theme-header">
+                <div class="user-info">
+                <h3>用户信息</h3>
+                    <p><strong>用户名：</strong> {{ user_name }}</p>
+                    <p><strong>身份：</strong> {{ user_role }}</p>
+                    <p><strong>ID：</strong> {{ user_custom_id }}</p>
+                </div>
+                <h1>{{ theme.title }}</h1>
+                <p>{{ theme_description }}</p>
+                
+                {% if user_role == "teacher" %}
+                <button id="toggle-student-list" class="btn">查看学生名单</button>
+                <div id="student-list" class="student-list">
+                    <h4>学生名单</h4>
+                    <ul>
+                        {% if theme.student_list %}
+                            {% for student in theme.student_list.splitlines %}
+                                {% if student %}
+                                    <li>{{ student }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <li>暂无学生名单</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 新建帖子区域 -->
+            <div class="create-post-area">
+                <h2>发布新帖子</h2>
+                <form class="create-post-form" id="create-post-form">
+                    <input type="text" id="post-title" name="title" placeholder="帖子标题" required>
+                    <textarea id="post-content" name="content" placeholder="帖子内容" required></textarea>
+                    <div class="form-actions">
+                        <div class="file-upload">
+                            <input type="file" id="post-image" name="image" accept="image/*" class = "btn">
+                        </div>
+                        <button type="submit" class="btn">发布帖子</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 帖子瀑布流区域 -->
+            <div class="posts-container" id="posts-container">
+                {% if posts|length > 0 %}
+                    {% for post in posts|dictsortreversed:"id" %}
+                        <div class="post-card" id="post-{{ post.id }}" data-post-id="{{ post.id }}">
+                            {% if user_role == "teacher" %}
+                            <div class="post-actions">
+                                <button class="more-btn" onclick="toggleMoreMenu('{{ post.id }}')">⋮</button>
+                                <div class="more-menu" id="more-menu-{{ post.id }}">
+                                    <button onclick="highlightPost('{{ post.id }}')">展示到中央</button>
+                                    {% if post.user_custom_id == user_custom_id or user_role == "teacher" %}
+                                        <button onclick="deletePost('{{ post.id }}')">删除帖子</button>
+                                    {% endif %}
+                                    <button onclick="editPost('{{ post.id }}')">编辑帖子</button>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if user_role == "student" %}
+                            <div class="post-actions">
+                                <button class="more-btn" onclick="toggleMoreMenu('{{ post.id }}')">⋮</button>
+                                <div class="more-menu" id="more-menu-{{ post.id }}">
+                                    {% if post.user_custom_id == user_custom_id or user_role == "teacher" %}
+                                        <button onclick="deletePost('{{ post.id }}')">删除帖子</button>
+                                        <button onclick="editPost('{{ post.id }}')">编辑帖子</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <h3 class="post-title">{{ post.title }}</h3>
+                            
+                            {% if post.image %}
+                                {% if post.image.url|is_image %}
+                                    <!-- 如果是图片，显示图片 -->
+                                    <img src="{{ post.image.url }}" alt="{{ post.title }}" class="post-image" onclick="showImageModal('{{ post.image.url }}')">
+                                    <div style="margin-bottom:10px;">
+                                        <a href="{{ post.image.url }}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                                            📄 下载附件
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <!-- 如果不是图片，显示文件名 -->
+                                    <div style="margin-bottom:10px;">
+                                        <a href="{{ post.image.url }}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                                            📄 {{ post.image.name }}
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                            
+                            <p class="post-content">{{ post.content|linebreaks }}</p>
+                            
+                            <div class="post-meta">
+                                <span>{{ post.user_name }}</span>
+                                <span>{{ post.created_at|date:"Y-m-d H:i" }}</span>
+                            </div>
+                            
+                            <!-- 点赞和评论按钮 -->
+                            <div class="post-interactions">
+                                <button class="post-interaction-btn like-btn {% if user_custom_id in post.liked_users.all|stringformat:'s' %}active{% endif %}" 
+                                        onclick="toggleLike('{{ post.id }}')">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span class="like-count">{{ post.likes }}</span>
+                                </button>
+                                <button class="post-interaction-btn comment-btn" onclick="toggleComments('{{ post.id }}')">
+                                    <i class="fas fa-comment"></i>
+                                    <span class="comment-count">{{ post.comments.count }}</span>
+                                </button>
+                            </div>
+                            
+                            <!-- 评论区域 -->
+                            <div class="comments-section" id="comments-{{ post.id }}">
+                                <div class="comments-list">
+                                    {% if comments|has_key:post.id %}
+                                        {% for comment in comments|get_item:post.id %}
+                                            <div class="comment">
+                                                <span class="comment-author">{{ comment.user.name }}</span>
+                                                <span class="comment-content">{{ comment.content }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="no-comments">暂无评论</div>
+                                    {% endif %}
+                                </div>
+                                <form class="comment-form" onsubmit="submitComment(event, '{{ post.id }}')">
+                                    <input type="text" class="comment-input" placeholder="添加评论..." required>
+                                    <button type="submit" class="comment-submit">发送</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="grid-column: 1/-1; text-align: center; color: #888; padding: 30px;">暂无帖子</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="image-modal" class="image-modal" onclick="closeImageModal()">
+        <img src="" alt="放大图片">
+    </div>
+
+    <script>
+        // 侧边栏切换
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const contentArea = document.getElementById('content-area');
+        
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            contentArea.classList.toggle('expanded');
+            
+            // 切换图标方向
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+        });
+        
+        // 切换学生名单显示/隐藏
+        const toggleStudentListBtn = document.getElementById('toggle-student-list');
+        if (toggleStudentListBtn) {
+            toggleStudentListBtn.addEventListener('click', function() {
+                const studentList = document.getElementById('student-list');
+                studentList.classList.toggle('active');
+                toggleStudentListBtn.textContent = studentList.classList.contains('active') ? '隐藏学生名单' : '查看学生名单';
+            });
+        }
+
+        // 切换更多菜单显示/隐藏
+        function toggleMoreMenu(postId) {
+            const menu = document.getElementById(`more-menu-${postId}`);
+            menu.classList.toggle('active');
+            
+            // 点击其他地方关闭菜单
+            document.addEventListener('click', function closeMenu(e) {
+                if (!e.target.closest(`#more-menu-${postId}`) && !e.target.closest(`.more-btn`)) {
+                    menu.classList.remove('active');
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }
+        
+        // 高亮展示帖子到中央
+        function highlightPost(postId) {
+            const postCard = document.getElementById(`post-${postId}`);
+            const allPosts = document.querySelectorAll('.post-card');
+            
+            // 移除所有帖子的高亮状态
+            allPosts.forEach(post => {
+                post.classList.remove('highlighted');
+            });
+            
+            // 添加高亮状态到选中的帖子
+            postCard.classList.add('highlighted');
+            
+            // 将高亮帖子移动到容器的第一个位置
+            const container = document.getElementById('posts-container');
+            container.prepend(postCard);
+            
+            // 滚动到帖子位置
+            postCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 通过WebSocket广播高亮帖子
+            broadcastMessage({
+                'type': 'highlight_post',
+                'post_id': postId,
+                'theme_id': '{{ theme_id }}'
+            });
+        }
+        
+        // 切换点赞状态
+        function toggleLike(postId) {
+            const likeBtn = document.querySelector(`#post-${postId} .like-btn`);
+            // 获取当前点赞按钮和点赞数量元素
+            const likeCount = document.querySelector(`#post-${postId} .like-count`);
+            // 切换点赞状态
+            likeBtn.classList.toggle('active');
+            // 更新点赞数量
+            let count = parseInt(likeCount.textContent);
+            if (likeBtn.classList.contains('active')) {
+                likeCount.textContent = count + 1;
+                likeBtn.querySelector('i').classList.add('fa-solid');
+                likeBtn.querySelector('i').classList.remove('fa-regular');
+            } else {
+                likeCount.textContent = Math.max(count - 1, 0);
+                likeBtn.querySelector('i').classList.remove('fa-solid');
+                likeBtn.querySelector('i').classList.add('fa-regular');
+            }
+
+            count = parseInt(likeCount.textContent);
+            // 通过WebSocket广播点赞状态
+            broadcastMessage({
+                'type': 'like_post',
+                'post_id': postId,
+                'user_id': '{{ user_custom_id }}',
+                'liked': likeBtn.classList.contains('active'),
+                'count': count
+            });
+            
+            // 这里是AJAX请求来更新服务器端的点赞状态
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/toggle_like/${postId}/`, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            const likeData = {
+                post_id: postId,
+                liked: likeBtn.classList.contains('active')
+            };
+            xhr.send(JSON.stringify(likeData));
+        }
+        
+        // 切换评论区显示/隐藏
+        function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            commentsSection.classList.toggle('active');
+        }
+        
+        // 提交评论
+        function submitComment(event, postId) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const input = form.querySelector('.comment-input');
+            const commentContent = input.value.trim();
+            
+            if (commentContent) {
+                // 创建新评论元素
+                const commentsList = document.querySelector(`#comments-${postId} .comments-list`);
+                const noComments = commentsList.querySelector('.no-comments');
+                if (noComments) {
+                    noComments.remove();
+                }
+                
+                // const newComment = document.createElement('div');
+                // newComment.className = 'comment';
+                // newComment.innerHTML = `
+                //     <span class="comment-author">{{ user_name }}</span>
+                //     <span class="comment-content">${commentContent}</span>
+                // `;
+                // commentsList.appendChild(newComment);
+                
+                // 更新评论计数
+                const commentCount = document.querySelector(`#post-${postId} .comment-count`);
+                let count = parseInt(commentCount.textContent);
+                commentCount.textContent = count + 1;
+                
+                // 清空输入框
+                input.value = '';
+                
+                // 通过WebSocket广播新评论
+                broadcastMessage({
+                    'type': 'new_comment',
+                    'post_id': postId,
+                    'user_name': '{{ user_name }}',
+                    'content': commentContent,
+                    'count': count + 1
+                });
+                
+                // 使用AJAX请求将评论保存到服务器
+                const xhr = new XMLHttpRequest();
+                //alert('正在提交评论至后端，请稍候...');
+                xhr.open('POST', `/add_comment/${postId}/${encodeURIComponent('{{ user_name }}')}/`, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+
+                const commentData = {
+                    post_id: postId,
+                    user_name: '{{ user_name }}',
+                    content: commentContent
+                };
+                // 获取CSRF令牌
+                function getCSRFToken() {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        cookie = cookie.trim();
+                        if (cookie.startsWith('csrftoken=')) {
+                            return cookie.substring('csrftoken='.length);
+                        }
+                    }
+                    return '';
+                }
+                // 设置CSRF令牌头
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.setRequestHeader('X-CSRFToken', getCSRFToken());
+
+                //alert('评论提交中，请稍候...');
+                xhr.send(JSON.stringify(commentData));
+            }
+        }
+        
+        // 创建新帖子
+        document.getElementById('create-post-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('post-title').value.trim();
+            const content = document.getElementById('post-content').value.trim();
+            const imageInput = document.getElementById('post-image');
+
+            let imageUrl = '';
+
+            if (imageInput.files && imageInput.files[0]) {
+                const imgForm = new FormData();
+                imgForm.append('image', imageInput.files[0]);
+                imgForm.append('user_custom_id', '{{ user_custom_id }}');
+
+                let imgXhr = new XMLHttpRequest();
+                imgXhr.open('POST', '/theme_room/upload_image/', false); // 同步请求，确保拿到imageUrl
+                imgXhr.onload = function() {
+                    if (imgXhr.status) {
+                        // 假设后端返回JSON: { "image_url": "xxx" }
+                        //alert('图片上传成功');
+                        const resp = JSON.parse(imgXhr.responseText);
+                        imageUrl = resp.image_url || '';
+                    } else {
+                        //alert('图片上传失败');
+                        throw new Error('图片上传失败');
+                    }
+                };
+                imgXhr.send(imgForm);
+            }
+            // 创建新帖子元素
+            let newPostId = '';
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            if (imageInput.files && imageInput.files[0]) {
+                formData.append('image', imageInput.files[0]);
+            }
+            formData.append('user', '{{ user }}');
+            formData.append('user_name', '{{ user_name }}');
+            formData.append('user_custom_id', '{{ user_custom_id }}');
+            formData.append('theme_id', '{{ theme_id }}');
+
+            // 同步请求会阻塞UI，建议实际用异步+回调，这里为演示同步写法
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/create_post/{{ theme_id }}/{{ user_name }}/', false); // 同步请求
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    //alert('创建帖子成功');
+                    // 解析响应获取新帖子的ID
+                    const resp = JSON.parse(xhr.responseText);
+                    newPostId = resp.id;
+                } else {
+                    //alert('创建帖子失败');
+                    throw new Error('创建帖子失败');
+                }
+            };
+            xhr.send(formData);
+
+            // 检查是否成功获取到新帖子的ID
+            newPostId = newPostId || ''; // 确保newPostId是字符串类型
+            // 如果没有获取到新帖子的ID，则不继续执行
+            if (!newPostId){
+                //alert('无法获取新帖子的ID，请稍后再试。');
+                return;
+            }
+
+            const postsContainer = document.getElementById('posts-container');
+            
+            // 移除"暂无帖子"提示（如果存在）
+            const noPostsMsg = postsContainer.querySelector('p');
+            if (noPostsMsg && noPostsMsg.textContent.includes('暂无帖子')) {
+                noPostsMsg.remove();
+            }
+            
+            // 创建新帖子HTML
+            const newPost = document.createElement('div');
+            newPost.className = 'post-card';
+            newPost.id = `post-${newPostId}`;
+            newPost.setAttribute('data-post-id', newPostId);
+            
+            let postHTML = '';
+            if ('{{ user_role }}' === 'teacher') {
+                postHTML += `
+                <div class="post-actions">
+                    <button class="more-btn" onclick="toggleMoreMenu('${newPostId}')">⋮</button>
+                    <div class="more-menu" id="more-menu-${newPostId}">
+                        <button onclick="highlightPost('${newPostId}')">展示到中央</button>
+                        <button onclick="deletePost('${newPostId}')">删除帖子</button>
+                        <button onclick="editPost('${newPostId}')">编辑帖子</button>
+                    </div>
+                </div>
+                `;
+            } else if ('{{ user_role }}' === 'student') {
+                postHTML += `
+                <div class="post-actions">
+                    <button class="more-btn" onclick="toggleMoreMenu('${newPostId}')">⋮</button>
+                    <div class="more-menu" id="more-menu-${newPostId}">
+                        <button onclick="deletePost('${newPostId}')">删除帖子</button>
+                        <button onclick="editPost('${newPostId}')">编辑帖子</button>
+                    </div>
+                </div>
+                `;
+            }
+            postHTML += `
+                <h3 class="post-title">${title}</h3>
+            `;
+            
+            if (imageUrl) {
+                postHTML += `<img src="${imageUrl}" alt="${title}" class="post-image" onclick="showImageModal('${imageUrl}')">`;
+                postHTML += `
+                    <div style="margin-bottom:10px;">
+                        <a href="${imageUrl}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                            📄 下载附件
+                        </a>
+                    </div>
+                `;
+            }
+
+            postHTML += `
+                <p class="post-content">${content.replace(/\n/g, '<br>')}</p>
+                
+                <div class="post-meta">
+                    <span>{{ user_name }}</span>
+                    <span>${new Date().toLocaleString()}</span>
+                </div>
+                
+                <!-- 点赞和评论按钮 -->
+                <div class="post-interactions">
+                    <button class="post-interaction-btn like-btn" onclick="toggleLike('${newPostId}')">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span class="like-count">0</span>
+                    </button>
+                    <button class="post-interaction-btn comment-btn" onclick="toggleComments('${newPostId}')">
+                        <i class="fas fa-comment"></i>
+                        <span class="comment-count">0</span>
+                    </button>
+                </div>
+                
+                <!-- 评论区域 -->
+                <div class="comments-section" id="comments-${newPostId}">
+                    <div class="comments-list">
+                        <div class="no-comments">暂无评论</div>
+                    </div>
+                    <form class="comment-form" onsubmit="submitComment(event, '${newPostId}')">
+                        <input type="text" class="comment-input" placeholder="添加评论..." required>
+                        <button type="submit" class="comment-submit">发送</button>
+                    </form>
+                </div>
+            `;
+            
+            newPost.innerHTML = postHTML;
+            
+            // 添加到帖子容器的开头
+            postsContainer.prepend(newPost);
+            
+            // 重置表单
+            document.getElementById('post-title').value = '';
+            document.getElementById('post-content').value = '';
+            document.getElementById('post-image').value = '';
+            
+            // 通过WebSocket广播新帖子
+            broadcastMessage({
+                'type': 'new_post',
+                'post_id': newPostId,
+                'title': title,
+                'content': content,
+                'image_url': imageUrl,
+                'user_name': '{{ user_name }}',
+                'theme_id': '{{ theme_id }}'
+            });
+            
+            // 这里应该有一个AJAX请求来保存帖子到服务器
+            // 为了演示，这里省略了实际的AJAX请求
+        });
+        
+        // 删除帖子功能
+        function deletePost(postId) {
+            const postElement = document.getElementById(`post-${postId}`);
+
+            if (!postElement) {
+                //alert('未找到该帖子');
+                return;
+            }
+
+            if (!confirm('确定要删除这条帖子吗？')) {
+                return;
+            }
+
+            // 通过 WebSocket 广播删除帖子信息
+            broadcastMessage({
+                type: 'delete_post',
+                post_id: postId
+            });
+
+            // 从页面中移除帖子
+            if (postElement) {
+                postElement.remove();
+            }
+
+            // 发送 AJAX 请求通知服务器删除帖子
+            const xhr = new XMLHttpRequest();
+            xhr.open('DELETE', `/delete_post/${postId}/`, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            //alert('正在删除帖子，请稍候...');
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    //alert('帖子已成功删除');
+                } else {
+                    //alert('删除帖子失败，请稍后重试');
+                }
+            };
+            xhr.send();
+        }
+        
+        // 替换编辑对话框为高亮编辑容器
+        function editPost(postId) {
+            const postCard = document.getElementById(`post-${postId}`);
+            const title = '';
+            const content = '';
+            //alert(`postId: ${postId}\ntitle: ${title}\ncontent: ${content}`);
+
+            // 创建编辑容器
+            const editContainer = document.createElement('div');
+            let editHTML = `
+                <div class="create-post-area id="edit-post-area-${postId}">
+                    <h2>编辑帖子</h2>
+                    <form class="edit-post-form" id="edit-post-form-${postId}">
+                        <input type="text" id="edit-post-title-${postId}" name="title" value="${title}" required>
+                        <textarea id="edit-post-content-${postId}" name="content" required>${content}</textarea>
+                        <div>
+                            <div class="edit-file-upload">
+                                <input type="file" id="post-image-${postId}" name="image" accept="image/*" class="btn" style="max-width: 180px;">
+                            </div>
+                            <button type="submit" class="btn">发布帖子</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            editContainer.innerHTML = editHTML;
+            editContainer.id = `edit-post-area-${postId}`;
+
+            postCard.insertAdjacentElement('afterend', editContainer);
+            editContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            editContainer.style.display = 'block';
+            // 高亮编辑容器
+            editContainer.classList.add('highlighted');
+            const EditContainer = document.getElementById('posts-container');
+            EditContainer.prepend(postCard);
+            // 滚动到编辑容器位置
+            editContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // 提交编辑表单
+            document.getElementById(`edit-post-form-${postId}`).onsubmit = function(event) {
+                event.preventDefault();
+
+                const newTitle = document.getElementById(`edit-post-title-${postId}`).value.trim();
+                const newContent = document.getElementById(`edit-post-content-${postId}`).value.trim();
+                const imageInput = document.getElementById(`post-image-${postId}`);
+                // 检查是否获取到图片
+                if (imageInput.files && imageInput.files[0]) {
+                    // 有图片，继续处理
+                } else {
+                    //alert('未选择图片，将只更新文本内容');
+                }
+
+                let imageUrl = '';
+
+                if (imageInput.files && imageInput.files[0]) {
+                    //alert('正在上传图片，请稍候...');
+                    const imgForm = new FormData();
+                    imgForm.append('image', imageInput.files[0]);
+                    imgForm.append('user_custom_id', '{{ user_custom_id }}');
+
+                    let imgXhr = new XMLHttpRequest();
+                    imgXhr.open('POST', '/theme_room/upload_image/', false); // 同步请求，确保拿到imageUrl
+                    imgXhr.onload = function() {
+                        if (imgXhr.status) {
+                            // 假设后端返回JSON: { "image_url": "xxx" }
+                            //alert('图片上传成功');
+                            const resp = JSON.parse(imgXhr.responseText);
+                            imageUrl = resp.image_url || '';
+                        } else {
+                            //alert('图片上传失败');
+                            throw new Error('图片上传失败');
+                        }
+                    };
+                    imgXhr.send(imgForm);
+                }
+
+                // 通过 AJAX 更新服务器端数据
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `/update_post/${postId}/`, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                const updatedData = {
+                    title: newTitle,
+                    content: newContent,
+                    image: imageInput.files && imageInput.files[0] ? imageInput.files[0].name : '',
+                };
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        //alert('帖子更新成功');
+                        
+                        // 更新帖子内容
+                        postCard.querySelector('h3').textContent = newTitle;
+                        // 先清除原内容再加入新内容
+                        const postContentElem = postCard.querySelector('.post-content');
+                        if (postContentElem) {
+                            postContentElem.innerHTML = '';
+                            // 保留换行
+                            postContentElem.innerHTML = newContent.replace(/\n/g, '<br>');
+                        }
+
+                        // 如果有新图片，更新图片
+                        if (imageInput.files && imageInput.files[0]) {
+                            const imgUrl = URL.createObjectURL(imageInput.files[0]);
+                            let postImage = postCard.querySelector('.post-image');
+                            if (!postImage) {
+                                postImage = document.createElement('img');
+                                postImage.className = 'post-image';
+                                postCard.insertBefore(postImage, postCard.querySelector('.post-content'));
+                            }
+                            postImage.src = imgUrl;
+                        }
+
+                        // 通过 WebSocket 广播更新消息
+                        broadcastMessage({
+                            type: 'update_post',
+                            post_id: postId,
+                            title: newTitle,
+                            content: newContent,
+                            image_url: imageInput.files && imageInput.files[0] ? imageInput.files[0].name : '',
+                            user_name: '{{ user_name }}'
+                        });
+                    } else {
+                        //alert('帖子更新失败，请稍后重试');
+                    }
+                };
+                xhr.send(JSON.stringify(updatedData));
+
+                // 隐藏编辑容器
+                editContainer.remove();
+            };
+        }
+        
+        // WebSocket连接
+        const ws = new WebSocket('ws://' + window.location.hostname + ':8001/ws/theme/{{ theme_id }}/');
+        
+        // 广播消息
+        function broadcastMessage(data) {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            }
+        }
+        
+        // 接收WebSocket消息
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            switch(data.type) {
+                case 'highlight_post':
+                    handleHighlightPost(data);
+                    break;
+                case 'like_post':
+                    handleLikePost(data);
+                    break;
+                case 'new_comment':
+                    handleNewComment(data);
+                    break;
+                case 'new_post':
+                    handleNewPost(data);
+                    break;
+                case 'delete_post':
+                    handleDeletePost(data);
+                    break;
+                case 'update_post':
+                    handleUpdatePost(data);
+                    break;
+                default:
+                    console.warn('未知消息类型:', data.type);
+            }
+        };
+        
+        // 处理高亮帖子消息
+        function handleHighlightPost(data) {
+            const postId = data.post_id;
+            const postCard = document.getElementById(`post-${postId}`);
+            
+            if (postCard) {
+                // 移除所有帖子的高亮状态
+                const allPosts = document.querySelectorAll('.post-card');
+                allPosts.forEach(post => {
+                    post.classList.remove('highlighted');
+                });
+                
+                // 添加高亮状态到选中的帖子
+                postCard.classList.add('highlighted');
+                
+                // 将高亮帖子移动到容器的第一个位置
+                const container = document.getElementById('posts-container');
+                container.prepend(postCard);
+                
+                // 滚动到帖子位置
+                postCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        // 处理点赞消息
+        function handleLikePost(data) {
+            // 避免处理自己发送的消息
+            if (data.user_id === '{{ user_custom_id }}') return;
+            
+            const postId = data.post_id;
+            const likeBtn = document.querySelector(`#post-${postId} .like-btn`);
+            const likeCount = document.querySelector(`#post-${postId} .like-count`);
+            
+            if (likeBtn && likeCount) {
+                // 更新点赞状态
+                // if (data.liked) {
+                //     likeBtn.classList.add('active');
+                // } else {
+                //     likeBtn.classList.remove('active');
+                // }
+                
+                // 更新点赞数量
+                likeCount.textContent = data.count;
+            }
+        }
+        
+        // 处理新评论消息
+        function handleNewComment(data) {
+            const postId = data.post_id;
+            const commentsList = document.querySelector(`#comments-${postId} .comments-list`);
+            const commentCount = document.querySelector(`#post-${postId} .comment-count`);
+            
+            if (commentsList && commentCount) {
+                // 移除"暂无评论"提示（如果存在）
+                const noComments = commentsList.querySelector('.no-comments');
+                if (noComments) {
+                    noComments.remove();
+                }
+                
+                // 创建新评论元素
+                const newComment = document.createElement('div');
+                newComment.className = 'comment';
+                newComment.innerHTML = `
+                    <span class="comment-author">${data.user_name}</span>
+                    <span class="comment-content">${data.content}</span>
+                `;
+                
+                commentsList.appendChild(newComment);
+                
+                // 更新评论计数
+                commentCount.textContent = data.count;
+            }
+        }
+        
+        // 处理新帖子消息
+        function handleNewPost(data) {
+            // 检查帖子是否已存在（避免重复添加）
+            if (document.getElementById(`post-${data.post_id}`)) return;
+            
+            const postsContainer = document.getElementById('posts-container');
+            
+            // 移除"暂无帖子"提示（如果存在）
+            const noPostsMsg = postsContainer.querySelector('p');
+            if (noPostsMsg && noPostsMsg.textContent.includes('暂无帖子')) {
+                noPostsMsg.remove();
+            }
+            
+            // 创建新帖子HTML
+            const newPost = document.createElement('div');
+            newPost.className = 'post-card';
+            newPost.id = `post-${data.post_id}`;
+            newPost.setAttribute('data-post-id', data.post_id);
+            
+            let postHTML = '';
+
+
+            if ('{{ user_role }}' === 'teacher') {
+                postHTML += `
+                <div class="post-actions">
+                    <button class="more-btn" onclick="toggleMoreMenu('${data.post_id}')">⋮</button>
+                    <div class="more-menu" id="more-menu-${data.post_id}">
+                        <button onclick="highlightPost('${data.post_id}')">展示到中央</button>
+                        <button onclick="deletePost('${data.post_id}')">删除帖子</button>
+                        <button onclick="editPost('${data.post_id}')">编辑帖子</button>
+                    </div>
+                </div>
+                `;
+            } else if ('{{ user_role }}' === 'student') {
+                postHTML += `
+                <div class="post-actions">
+                    <button class="more-btn" onclick="toggleMoreMenu('${data.post_id}')">⋮</button>
+                    <div class="more-menu" id="more-menu-${data.post_id}">
+                        <button onclick="deletePost('${data.post_id}')">删除帖子</button>
+                        <button onclick="editPost('${data.post_id}')">编辑帖子</button>
+                    </div>
+                </div>
+                `;
+            }
+
+
+            postHTML += `
+                <h3 class="post-title">${data.title}</h3>
+            `;
+            
+            if (data.image_url) {
+                postHTML += `<img src="${data.image_url}" alt="${data.title}" class="post-image" onclick="showImageModal('${data.image_url}')">`;
+                postHTML += `
+                    <div style="margin-bottom:10px;">
+                        <a href="${data.image_url}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                            📄 下载附件
+                        </a>
+                    </div>
+                `;
+            }
+            
+            if (data.document_url) {
+                postHTML += `
+                    <div style="margin-bottom:10px;">
+                        <a href="${data.document_url}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                            📄 下载附件
+                        </a>
+                    </div>
+                `;
+            }
+
+            postHTML += `
+                <p class="post-content">${data.content.replace(/\n/g, '<br>')}</p>
+
+                <div class="post-meta">
+                    <span>${data.user_name}</span>
+                    <span>${new Date().toLocaleString()}</span>
+                </div>
+                
+                <!-- 点赞和评论按钮 -->
+                <div class="post-interactions">
+                    <button class="post-interaction-btn like-btn" onclick="toggleLike('${data.post_id}')">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span class="like-count">0</span>
+                    </button>
+                    <button class="post-interaction-btn comment-btn" onclick="toggleComments('${data.post_id}')">
+                        <i class="fas fa-comment"></i>
+                        <span class="comment-count">0</span>
+                    </button>
+                </div>
+                
+                <!-- 评论区域 -->
+                <div class="comments-section" id="comments-${data.post_id}">
+                    <div class="comments-list">
+                        <div class="no-comments">暂无评论</div>
+                    </div>
+                    <form class="comment-form" onsubmit="submitComment(event, '${data.post_id}')">
+                        <input type="text" class="comment-input" placeholder="添加评论..." required>
+                        <button type="submit" class="comment-submit">发送</button>
+                    </form>
+                </div>
+            `;
+            
+            newPost.innerHTML = postHTML;
+            
+            // 添加到帖子容器的开头
+            postsContainer.prepend(newPost);
+        }
+        
+        // 处理删除帖子消息
+        function handleDeletePost(data) {
+            const postId = data.post_id;
+            const postElement = document.getElementById(`post-${postId}`);
+            
+            if (postElement) {
+                // 从页面中移除帖子
+                postElement.remove();
+            }
+        }
+        
+        // 添加图片放大功能的脚本
+        function showImageModal(imageUrl) {
+            const modal = document.getElementById('image-modal');
+            const modalImage = modal.querySelector('img');
+            modalImage.src = imageUrl;
+            modal.classList.add('active');
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('image-modal');
+            modal.classList.remove('active');
+        }
+        
+        function handleUpdatePost(data) {
+            // 防止自身接受来自自己的信号
+            if (data.user_name === '{{ user_name }}') return;
+            const postId = data.post_id;
+            const postCard = document.getElementById(`post-${postId}`);
+
+                if (postCard) {
+                    // 更新帖子标题
+                    const titleElement = postCard.querySelector('h3');
+                    if (titleElement) {
+                        titleElement.textContent = data.title;
+                    }
+
+                    // 更新帖子内容
+                    const contentElement = postCard.querySelector('.post-content');
+                    if (contentElement) {
+                        contentElement.innerHTML = data.content.replace(/\n/g, '<br>');
+                    }
+
+                    // 更新帖子图片
+                    const imageElement = postCard.querySelector('.post-image');
+                    if (data.image_url) {
+                        if (imageElement) {
+                            imageElement = data.image_url;
+                        } else {
+                            const newImageElement = document.createElement('img');
+                            newImageElement.src = data.image_url;
+                            newImageElement.className = 'post-image';
+                            postCard.insertBefore(newImageElement, contentElement);
+                        }
+                    } else if (imageElement) {
+                        imageElement.remove();
+                    }
+                }
+            }
+        
+            ws.onerror = function(e) { 
+            console.log('WebSocket error', e); 
+        };
+    </script>
+</body>
+</html>

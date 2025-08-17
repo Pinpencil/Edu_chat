@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>创建新班级</title>
+    <link rel="stylesheet" href="{% static 'us.css' %}">
+    <style>
+        body {
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 500px;
+            margin: 80px auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 48px 32px 40px 32px;
+        }
+        h1 {
+            color: #2d8cf0;
+            font-size: 2rem;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+        }
+        label {
+            display: block;
+            margin: 18px 0 8px 0;
+            color: #2d8cf0;
+            font-weight: 500;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #c2e9fb;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            background: #f7fbff;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 36px;
+            background: linear-gradient(90deg, #2d8cf0 0%, #57c1eb 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 2px 8px #e1e1e1;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            background: linear-gradient(90deg, #1a6fb3 0%, #57c1eb 100%);
+            box-shadow: 0 4px 16px #b3d8f7;
+        }
+        .or {
+            text-align: center;
+            color: #aaa;
+            margin: 18px 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>创建新班级</h1>
+        <form method="post" action="" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label for="name">班级名称</label>
+            <input type="text" id="name" name="name" required placeholder="请输入班级名称">
+
+            <label for="students">学生名单（手动输入，每行一个名字）</label>
+            <textarea id="students" name="students" placeholder="张三\n李四\n王五"></textarea>
+
+            <div class="or">或</div>
+
+            <label for="student_list">从Excel导入学生名单</label>
+            <input type="file" id="student_list" name="student_list" accept=".xls,.xlsx">
+
+            <button type="submit" class="btn">创建班级</button>
+        </form>
+    </div>
+</body>
+</html>

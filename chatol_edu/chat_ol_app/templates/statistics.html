@@ -1,0 +1,825 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ theme.title }} - 统计数据</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2d8cf0;
+            --primary-light: #57c1eb;
+            --primary-dark: #1a6fb3;
+            --text-primary: #333;
+            --text-secondary: #555;
+            --text-light: #888;
+            --bg-gradient: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --border-radius-sm: 6px;
+            --border-radius-md: 10px;
+            --border-radius-lg: 16px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(31, 38, 135, 0.1);
+            --shadow-lg: 0 8px 32px rgba(31, 38, 135, 0.18);
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --spacing-xs: 5px;
+            --spacing-sm: 10px;
+            --spacing-md: 15px;
+            --spacing-lg: 20px;
+            --spacing-xl: 30px;
+            --highlight-color: #ffeb3b;
+            --highlight-bg: rgba(255, 235, 59, 0.2);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        /* 整体布局 */
+        .main-container {
+            display: auto;
+            margin-left: 20px;
+            min-height: 100vh;
+        }
+        
+        /* 左侧用户信息栏 */
+        .sidebar {
+            width: 250px;
+            background: var(--card-bg);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform var(--transition-normal);
+            z-index: 100;
+            left: 0;
+            top: 0;
+        }
+        
+        .sidebar.collapsed {
+            transform: translateX(-250px);
+        }
+        
+        .sidebar-toggle {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: -40px;
+            width: 40px;
+            height: 40px;
+            background: var(--card-bg);
+            border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            z-index: 101;
+            transition: background var(--transition-fast);
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        .user-info {
+            padding: var(--spacing-lg) 0;
+            border-bottom: 1px solid #e1e1e1;
+            margin-bottom: var(--spacing-lg);
+            margin-left: var(--spacing-lg);
+        }
+        
+        .user-info h3 {
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .user-info p {
+            color: var(--text-secondary);
+            margin: var(--spacing-xs) 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .user-info p strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 让右侧内容区为侧边栏腾出空间 */
+        .content-area {
+            margin-left: 250px;
+            flex: 1;
+            padding: var(--spacing-lg);
+            transition: margin-left var(--transition-normal);
+            width: calc(100% - 290px);
+            box-sizing: border-box;
+        }
+        
+        .sidebar.collapsed ~ .content-area,
+        .content-area.expanded {
+            margin-left: 40px;
+            width: calc(100% - 40px);
+        }
+        
+        /* 主题信息区 */
+        .theme-header {
+            background: var(--card-bg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--spacing-xl) var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+        }
+        
+        .theme-header h3 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: var(--spacing-lg);
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        /* 统计数据卡片样式 */
+        .stats-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+            justify-content: center;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg) var(--spacing-xl);
+            min-width: 180px;
+            flex: 1;
+            text-align: center;
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+            border: 1px solid rgba(194, 233, 251, 0.3);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        /* 排名和详情区域 */
+        .stats-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xl);
+            margin-top: var(--spacing-xl);
+        }
+        
+        .stats-detail-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            flex: 1;
+            min-width: 280px;
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+            border: 1px solid rgba(194, 233, 251, 0.3);
+        }
+        
+        .stats-detail-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stats-detail-title {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .stats-detail-title:before {
+            content: "📊";
+            margin-right: var(--spacing-sm);
+        }
+        
+        /* 排名列表样式 */
+        .ranking-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .ranking-list li {
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid rgba(194, 233, 251, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .ranking-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .ranking-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .ranking-position {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: var(--primary-light);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            margin-right: var(--spacing-sm);
+            font-weight: bold;
+        }
+        
+        .ranking-value {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* 最受欢迎帖子卡片 */
+        .popular-posts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-xl);
+            width: 100%;
+        }
+        
+        .popular-post-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            flex: 1;
+            min-width: 280px;
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+            border: 1px solid rgba(194, 233, 251, 0.3);
+        }
+        
+        .popular-post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .popular-post-title {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .popular-post-title.comments:before {
+            content: "💬";
+            margin-right: var(--spacing-sm);
+        }
+        
+        .popular-post-title.likes:before {
+            content: "👍";
+            margin-right: var(--spacing-sm);
+        }
+        
+        .popular-post-title.highlight:before {
+            content: "✨";
+            margin-right: var(--spacing-sm);
+        }
+        
+        .popular-post-content {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .popular-post-stats {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: var(--spacing-xs);
+        }
+        
+        .post-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+            position: relative;
+            border: 1px solid rgba(194, 233, 251, 0.3);
+        }
+        
+        .post-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(31, 38, 135, 0.15);
+        }
+        
+        .post-card h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: var(--spacing-sm);
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.4;
+            padding-right: 30px; /* 为更多按钮留出空间 */
+        }
+        
+        .post-card p {
+            max-height: 150px;
+            overflow-y: auto;
+            word-break: break-word;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        
+        .post-card .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-top: var(--spacing-sm);
+            padding-top: var(--spacing-xs);
+            border-top: 1px solid rgba(194, 233, 251, 0.3);
+        }
+        
+        .post-card .post-image {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            transition: transform var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .post-card .post-image:hover {
+            transform: scale(1.02);
+        }
+        
+        /* 高亮帖子样式 - 瀑布流布局 */
+        .highlighted-posts-section {
+            margin-top: var(--spacing-xl);
+            width: 100%;
+        }
+        
+        .highlighted-posts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            width: 100%;
+        }
+        
+        .highlighted-post-card {
+            background: var(--highlight-bg);
+            border: 1px solid var(--highlight-color);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            height: fit-content;
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
+        
+        .highlighted-post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .highlighted-post-title {
+            color: var(--primary-dark);
+            font-size: 1.2rem;
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .highlighted-post-title:before {
+            content: "🌟";
+            margin-right: var(--spacing-sm);
+        }
+        
+        .highlighted-post-user {
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .highlighted-post-content {
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .highlighted-post-stats {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: var(--spacing-sm);
+            padding-top: var(--spacing-xs);
+            border-top: 1px solid rgba(194, 233, 251, 0.5);
+        }
+        
+        .highlighted-count {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: var(--spacing-sm);
+        }
+        
+        /* 图片模态框 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+        
+        .image-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .image-modal .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: transform var(--transition-fast);
+        }
+        
+        .image-modal .close-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .stats-section {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stat-card {
+                width: 100%;
+                max-width: 400px;
+            }
+            
+            .popular-posts {
+                flex-direction: column;
+            }
+            
+            .highlighted-posts-container {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .content-area {
+                margin-left: 0;
+                width: 100%;
+                padding: var(--spacing-md);
+            }
+            
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            
+            .sidebar-toggle {
+                right: -40px;
+            }
+            
+            .theme-header {
+                padding: var(--spacing-lg);
+            }
+            
+            .stats-detail-card,
+            .popular-post-card {
+                min-width: 100%;
+            }
+            
+            .highlighted-posts-container {
+                grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 图片模态框 -->
+    <div class="image-modal" id="image-modal">
+        <div class="close-btn" onclick="closeImageModal()">×</div>
+        <img src="" alt="放大图片">
+    </div>
+
+    <div class="main-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" id="sidebar-toggle">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="user-info" style="font-size: 1.2rem;">
+                <h3 style="font-size: 1.5rem;">{{ user.username }}</h3>
+                <p>
+                    <span>角色</span>
+                    <strong>{{ user_role }}</strong>
+                </p>
+                <p>
+                    <span>主题</span>
+                    <strong>{{ theme.title }}</strong>
+                </p>
+            </div>
+            <a href="{% url 'theme_room' theme.id user_name %}" style="display: block; margin: 30px 0 0 0; text-align: center; text-decoration: none;">
+                <button style="background: var(--primary-color); color: #fff; border: none; border-radius: var(--border-radius-md); padding: 10px 24px; font-size: 1rem; cursor: pointer; box-shadow: var(--shadow-sm); transition: background 0.2s;">
+                    <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>返回主题
+                </button>
+            </a>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content-area" id="content-area">
+            <div class="theme-header">
+                <h3>{{ theme.title }} - 统计数据</h3>
+                
+                <!-- 主要统计数据卡片 -->
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <div class="stat-label">学生总人数</div>
+                        <div class="stat-value student-count" id="stat-student-count">{{ theme.student_list.splitlines|length }}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">总发帖数</div>
+                        <div class="stat-value post-count" id="stat-post-count">{{ total_posts }}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">发帖人数</div>
+                        <div class="stat-value poster-count" id="stat-poster-count">{{ total_posters }}</div>
+                    </div>
+                </div>
+                
+                <!-- 详细统计信息 -->
+                <div class="stats-details">
+                    <div class="stats-detail-card">
+                        <div class="stats-detail-title">发帖最多用户（前3名）</div>
+                        <ul class="ranking-list" id="top-posters-list">
+                            {% for user, count in top_posters %}
+                                <li>
+                                    <div class="ranking-name">
+                                        <span class="ranking-position">{{ forloop.counter }}</span>
+                                        {{ user }}
+                                    </div>
+                                    <div class="ranking-value">{{ count }} 帖</div>
+                                </li>
+                            {% empty %}
+                                <li>暂无数据</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 最受欢迎帖子 -->
+                <div class="popular-posts">
+                    <div class="popular-post-card">
+                        <div class="popular-post-title comments">评论最多帖子</div>
+                        {% if most_commented_post %}
+                            <div class="post-card">
+                                <div class="popular-post-content" style="font-size:1.5rem; font-weight:bold;">{{ most_commented_post.title }}</div>
+                                {% if most_commented_post.image %}
+                                    {% if most_commented_post.image.url|is_image %}
+                                        <img src="{{ most_commented_post.image.url }}" alt="{{ most_commented_post.title }}" class="post-image" onclick="showImageModal('{{ most_commented_post.image.url }}')">
+                                    {% else %}
+                                        <div style="margin-bottom:10px;">
+                                            <a href="{{ most_commented_post.image.url }}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                                                📄 {{ most_commented_post.image.name }}
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                                <div class="post-content">{{ most_commented_post.content|linebreaks }}</div>
+                                <div class="popular-post-stats">
+                                    <span>作者: {{ most_commented_post.user_name }}</span>
+                                    <span>{{ most_commented_post.comments.count }} 评论</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="post-card">
+                                <div class="popular-post-content">暂无评论数据</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="popular-post-card">
+                        <div class="popular-post-title likes">点赞最多帖子</div>
+                        {% if most_liked_post %}
+                            <div class="post-card">
+                                <div class="popular-post-content" style="font-size:1.5rem; font-weight:bold;">{{ most_liked_post.title }}</div>
+                                {% if most_liked_post.image %}
+                                    {% if most_liked_post.image.url|is_image %}
+                                        <img src="{{ most_liked_post.image.url }}" alt="{{ most_liked_post.title }}" class="post-image" onclick="showImageModal('{{ most_liked_post.image.url }}')">
+                                    {% else %}
+                                        <div style="margin-bottom:10px;">
+                                            <a href="{{ most_liked_post.image.url }}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                                                📄 {{ most_liked_post.image.name }}
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                                <div class="post-content">{{ most_liked_post.content|linebreaks }}</div>
+                                <div class="popular-post-stats">
+                                    <span>作者: {{ most_liked_post.user_name }}</span>
+                                    <span>{{ most_liked_post.likes }} 点赞</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="post-card">
+                                <div class="popular-post-content">暂无点赞数据</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 高亮帖子 - 瀑布流布局 -->
+                <div class="highlighted-posts-section">
+                    <div class="stats-detail-title">高亮显示帖子</div>
+                    {% if highlighted_posts %}
+                        <div class="highlighted-posts-container">
+                            {% for post in highlighted_posts %}
+                                <div class="highlighted-post-card">
+                                    <div class="highlighted-post-title">{{ post.title }}</div>
+                                    <div class="highlighted-post-user">作者: {{ post.user_name }}</div>
+                                    {% if post.image %}
+                                        {% if post.image.url|is_image %}
+                                            <img src="{{ post.image.url }}" alt="{{ post.title }}" class="post-image" style="max-width: 300px; max-height: 200px; width: auto; height: auto;" onclick="showImageModal('{{ post.image.url }}')">
+                                        {% else %}
+                                            <div style="margin-bottom:10px;">
+                                                <a href="{{ post.image.url }}" target="_blank" class="btn" style="padding:4px 12px; font-size:0.95rem;">
+                                                    📄 {{ post.image.name }}
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                    <div class="highlighted-post-content">{{ post.content|linebreaks }}</div>
+                                    <div class="highlighted-post-stats">
+                                        <div>
+                                            <i class="fas fa-comment"></i> {{ post.comments.count }} 评论
+                                            <i class="fas fa-thumbs-up" style="margin-left: 10px;"></i> {{ post.likes }} 点赞
+                                        </div>
+                                        <div>
+                                            高亮次数 <span class="highlighted-count">{{ post.showed_times }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="highlighted-post-card">
+                            <div class="highlighted-post-content">暂无高亮帖子</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // 添加图片放大功能的脚本
+        function showImageModal(imageUrl) {
+            const modal = document.getElementById('image-modal');
+            const modalImage = modal.querySelector('img');
+            modalImage.src = imageUrl;
+            modal.classList.add('active');
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('image-modal');
+            modal.classList.remove('active');
+        }
+        
+        // 点击模态框背景关闭
+        document.getElementById('image-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImageModal();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 侧边栏切换
+            const sidebar = document.getElementById('sidebar');
+            const contentArea = document.getElementById('content-area');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                contentArea.classList.toggle('expanded');
+                
+                // 切换图标
+                const icon = sidebarToggle.querySelector('i');
+                if (sidebar.classList.contains('collapsed')) {
+                    icon.classList.remove('fa-chevron-left');
+                    icon.classList.add('fa-chevron-right');
+                } else {
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-left');
+                }
+            });
+            
+            // 初始化图标
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+            
+            // 添加数字动画效果
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues.forEach(function(statValue) {
+                const finalValue = parseInt(statValue.textContent);
+                let startValue = 0;
+                const duration = 1500;
+                const startTime = performance.now();
+                
+                function updateValue(currentTime) {
+                    const elapsedTime = currentTime - startTime;
+                    if (elapsedTime < duration) {
+                        const progress = elapsedTime / duration;
+                        const currentValue = Math.floor(progress * finalValue);
+                        statValue.textContent = currentValue;
+                        requestAnimationFrame(updateValue);
+                    } else {
+                        statValue.textContent = finalValue;
+                    }
+                }
+                
+                requestAnimationFrame(updateValue);
+            });
+        });
+    </script>
+</body>
+</html>

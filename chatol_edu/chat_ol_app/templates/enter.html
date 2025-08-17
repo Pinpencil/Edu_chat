@@ -1,0 +1,175 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建新班级</title>
+    <link rel="stylesheet" href="{% static 'us.css' %}">
+    <style>
+        body {
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 80px auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 48px 32px 40px 32px;
+        }
+        h1 {
+            color: #2d8cf0;
+            font-size: 2rem;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        h2 {
+            color: #2d8cf0;
+            font-size: 1.5rem;
+            margin: 30px 0 20px;
+            text-align: center;
+        }
+        p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin: 18px 0 8px 0;
+            color: #2d8cf0;
+            font-weight: 500;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #c2e9fb;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            background: #f7fbff;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 36px;
+            background: linear-gradient(90deg, #2d8cf0 0%, #57c1eb 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background: linear-gradient(90deg, #1a6fb3 0%, #57c1eb 100%);
+            box-shadow: 0 4px 16px #b3d8f7;
+            transform: translateY(-2px);
+        }
+        .or {
+            text-align: center;
+            color: #aaa;
+            margin: 18px 0 10px 0;
+        }
+        
+        /* 学生网格布局样式 */
+        .students-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .student-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(90deg, #2d8cf0 0%, #a1c4fd 100%);
+            color: #fff;
+            padding: 15px 10px;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            text-align: center;
+            text-decoration: none;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            height: 45px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .student-btn:hover {
+            background: linear-gradient(90deg, #1a6fb3 0%, #8fb8f7 100%);
+            box-shadow: 0 5px 15px rgba(45, 140, 240, 0.3);
+            transform: translateY(-3px);
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 40px 20px;
+                padding: 30px 20px;
+            }
+            
+            .students-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+            }
+            
+            .student-btn {
+                font-size: 0.95rem;
+                padding: 12px 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .students-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 8px;
+            }
+            
+            .student-btn {
+                font-size: 0.9rem;
+                padding: 10px 6px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>进入主题：{{ theme_title }}</h1>
+
+        <p><strong></strong> {{ theme_description }}</p>
+        <p><strong>当前用户角色：</strong> {{ user_role }}</p>
+        <p><strong>当前用户姓名：</strong> {{ user_name }}</p>
+        <p><strong>当前用户ID：</strong> {{ user_custom_id }}</p>
+        
+        <h2>选择您的名字</h2>
+        
+        <div class="students-grid">
+            {% for student in theme.student_list.splitlines %}
+                {% if student.strip %}
+                    <a href="{% url 'theme_room' theme_id student.strip %}" class="student-btn">
+                        {{ student.strip }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </div> 
+    </div>
+</body>
+</html>

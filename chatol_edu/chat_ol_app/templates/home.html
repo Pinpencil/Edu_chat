@@ -1,0 +1,253 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+    <style>
+        body {
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 500px;
+            margin: 100px auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 48px 32px 40px 32px;
+        }
+        h1 {
+            color: #2d8cf0;
+            font-size: 2.2rem;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+        }
+        p {
+            color: #555;
+            font-size: 1.15rem;
+            margin-bottom: 32px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 36px;
+            background: linear-gradient(90deg, #2d8cf0 0%, #57c1eb 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 2px 8px #e1e1e1;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            background: linear-gradient(90deg, #1a6fb3 0%, #57c1eb 100%);
+            box-shadow: 0 4px 16px #b3d8f7;
+        }
+        .logo {
+            width: 64px;
+            margin-bottom: 18px;
+        }
+    </style>
+</head>
+
+
+<body>
+    <div class="container">
+        <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4ac.png" alt="logo" class="logo">
+        <h1>欢迎来到在线教学平台</h1>
+        <p>本平台支持师生互动、班级管理与实时交流。</p>
+
+        {% if user_name %}
+            <p><strong>当前用户：</strong> {{ user_name }}</p>
+        {% endif %}
+        {% if user_role %}
+            <p><strong>身份：</strong> {{ user_role }}</p>
+        {% endif %}
+        {% if user_custom_id %}
+            <p><strong>ID：</strong> {{ user_custom_id }}</p>
+        {% endif %}
+
+        {% if user_role == "teacher" %}
+        <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+            <form action="{% url 'create_theme' %}" method="get">
+            {% csrf_token %}
+            <button type="submit" class="btn">创建新主题</button>
+            </form>
+            <form action="{% url 'create_class' %}" method="get">
+            {% csrf_token %}
+            <button type="submit" class="btn">创建新班级</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- 主题列表 -->
+        <div style="margin: 32px 0; display: flex; gap: 32px; justify-content: center; align-items: flex-start;">
+            <div style="flex:1; min-width:200px;">
+                <h2 style="color:#2d8cf0; font-size:1.3rem;">主题列表</h2>
+                {% if themes|length > 0 %}
+                <ul id="theme-list" style="list-style:none; padding:0;">
+                {% for theme in themes %}
+                    <li style="margin:12px 0; padding:10px 18px; background:#f3f8ff; border-radius:8px;">
+                        {% if user_role == 'teacher' %}
+                            <a href="{% url 'theme_room' theme.id user_name %}" class="btn" style="display:block; width:100%; text-align:left; background:linear-gradient(90deg, #2d8cf0 0%, #a1c4fd 100%); color:#fff; padding:10px 18px; border-radius:8px; font-size:1.05rem;">
+                                <strong>{{ theme.title }}</strong>
+                                {% if theme.description %}
+                                    <br><span style="color:#eaf6ff; font-size:0.98em;">{{ theme.description }}</span>
+                                {% endif %}
+                            </a>
+                        {% else %}
+                            <a href="{% url 'enter' theme.id %}" class="btn" style="display:block; width:100%; text-align:left; background:linear-gradient(90deg, #2d8cf0 0%, #a1c4fd 100%); color:#fff; padding:10px 18px; border-radius:8px; font-size:1.05rem;">
+                                <strong>{{ theme.title }}</strong>
+                                {% if theme.description %}
+                                    <br><span style="color:#eaf6ff; font-size:0.98em;">{{ theme.description }}</span>
+                                {% endif %}
+                            </a>
+                        {% endif %}
+                    </li>
+                    {% if user_role == 'teacher' %}
+                        <button class="btn" style="background: #ca8586; padding: 5px 16px; font-size: 0.95rem;" onclick="deleteTheme('{{ theme.id }}')">删除此主题</button>
+                    {% endif %}
+                {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color:#888;">暂无主题</p>
+                {% endif %}
+            </div>
+            <!-- 班级列表 -->
+            <div style="flex:1; min-width:200px;">
+                <h2 style="color:#2d8cf0; font-size:1.3rem;">班级列表</h2>
+                {% if classes|length > 0 %}
+                <ul id="class-list" style="list-style:none; padding:0;">
+                {% for c in classes %}
+                    <li style="margin:12px 0; padding:10px 18px; background:#f8f3ff; border-radius:8px;">
+                        <strong>{{ c.name }}</strong>
+                        {% if user_role == "teacher" and c.student_list %}
+                            <br>
+                            <button type="button" class="btn" style="margin-left:0px; padding:5px 12px; font-size:0.95rem; margin-top: 10px;" onclick="toggleStudentList('{{ c.id }}')">查看学生名单</button>
+                            <form id="student-list-form-{{ c.id }}" style="display:none; margin-top:12px; background:#fff; border-radius:8px; padding:12px 16px; box-shadow:0 2px 8px #eee;">                                <ul style="margin:0; padding:0 0 0 18px; color:#333;">
+                                    {% if c.student_list %}
+                                        <li style="font-weight:bold; margin-bottom:5px;">学生名单：</li>
+                                        {% for student in c.get_students %}
+                                            <li>{{ student }}</li>
+                                        {% endfor %}
+                                    {% else %}
+                                        <li>暂无学生名单</li>
+                                    {% endif %}
+                                </ul>
+                            </form>
+                        {% endif %}
+                        {% if user_role == "teacher" %}
+                        <button class="btn" style="margin-top: 10px; background: #ff4d4f;" onclick="deleteClass('{{ c.id }}')">删除此班级</button>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                {% endif %}
+                </ul>
+
+                    <script>
+                    function deleteTheme(themeId) {
+                        if (!confirm('确定要删除这个主题吗？')) {
+                            return;
+                        }
+
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('DELETE', `/delete_theme/${themeId}/`, true);
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                        xhr.onload = function () {
+                            if (xhr.status === 200) {
+                                //alert('主题已成功删除');
+                                location.reload();
+                            } else {
+                                //alert('删除主题失败，请稍后再试');
+                            }
+                        };
+                        //alert('正在删除主题，请稍候...');
+                        xhr.send();
+                    }
+
+                    function toggleStudentList(classId) {
+                        var form = document.getElementById('student-list-form-' + classId);
+                        if (form) {
+                            form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+                        }
+                    }
+
+                    function deleteClass(classId) {
+                        if (!confirm('确定要删除这个班级吗？')) {
+                            return;
+                        }
+
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('DELETE', `/delete_class/${classId}/`, true);
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                        xhr.onload = function () {
+                            if (xhr.status === 200) {
+                                //alert('班级已成功删除');
+                                location.reload();
+                            }
+                            else {
+                                //alert('删除班级失败，请稍后再试');
+                            }
+                        };
+                        xhr.send();
+                    }
+
+
+    const ws = new WebSocket('ws://' + window.location.hostname + ':8001/ws/notify/');
+    ws.onmessage = function(event) {
+        // 解析接收到的消息
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'delete_theme') {
+            const themeId = data.theme_id;
+            const themeElement = document.querySelector(`[onclick="deleteTheme('${themeId}')"]`).closest('li');
+            if (themeElement) {
+                themeElement.remove();
+            }
+            //alert('主题已被删除');
+        }
+
+        if (data.type === 'new_theme') {
+            const theme = data.theme;
+            const list = document.getElementById('theme-list');
+            if (list) {
+                const item = document.createElement('li');
+                item.setAttribute('style', 'margin:12px 0; padding:10px 18px; background:#f3f8ff; border-radius:8px;');
+                let html = `<a href="/theme_room/${theme.id}/${theme.user_name}" class="btn" style="display:block; width:100%; text-align:left; background:linear-gradient(90deg, #2d8cf0 0%, #a1c4fd 100%); color:#fff; padding:10px 18px; border-radius:8px; font-size:1.05rem;">
+                    <strong>${theme.title}</strong>`;
+                if (theme.description) {
+                    html += `<br><span style="color:#888;">${theme.description}</span>`;
+                }
+                item.innerHTML = html;
+                list.appendChild(item);
+            }
+        }
+
+        if (data.type === 'delete_class') {
+            const classId = data.class_id;
+            const classElement = document.querySelector(`[onclick="deleteClass('${classId}')"]`).closest('li');
+            if (classElement) {
+                classElement.remove();
+            }
+            //alert('班级已被删除');
+        }
+
+        // if (data.type === 'new_class') {
+        //     const classList = document.getElementById('class-list');
+        //     if (classList) {
+        //         const item = document.createElement('li');
+        //         item.setAttribute('style', 'margin:12px 0; padding:10px 18px; background:#f3f8ff; border-radius:8px;');
+        //         let html = `<strong>${Class.name}</strong>`;
+        //         if (Class.student_list) {
+        //             html += `<br><span style="color:#888;">已上传名单</span>`;
+        //         }
+        //         item.innerHTML = html;
+        //         list.appendChild(item);
+        //     }
+        // };
+    };                          
+    ws.onerror = function(e) { console.log('WebSocket error', e); };
+                    </script>
