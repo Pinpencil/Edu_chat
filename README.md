@@ -4,6 +4,7 @@
 ## 概述
 
 主题房间页面是课堂BBS系统的核心交互界面，提供了完整的在线教学和协作功能。该页面支持师生角色分离，实现了小组管理、帖子发布、实时交互等多种功能。
+<img width="2459" height="1370" alt="image" src="https://github.com/user-attachments/assets/3ee78270-abc3-4705-88d2-5727de6652e8" />
 
 ## 页面布局架构
 
